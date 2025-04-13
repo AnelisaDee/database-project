@@ -1,0 +1,126 @@
+CREATE DATABASE bookstore;
+
+CREATE TABLE book_language (
+    language_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE author (
+    author_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE publisher (
+    publisher_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    website VARCHAR(255)
+);
+
+CREATE TABLE book (
+    book_id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    isbn VARCHAR(20) UNIQUE NOT NULL,
+    publication_year INT,
+    language_id INT REFERENCES book_language(language_id),
+    publisher_id INT REFERENCES publisher(publisher_id),
+    price DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE book_author (
+    book_id INT REFERENCES book(book_id),
+    author_id INT REFERENCES author(author_id),
+    PRIMARY KEY (book_id, author_id)
+);
+
+CREATE TABLE country (
+    country_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE address (
+    address_id SERIAL PRIMARY KEY,
+    street VARCHAR(255),
+    city VARCHAR(100),
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    country_id INT REFERENCES country(country_id)
+);
+
+CREATE TABLE address_status (
+    status_id SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE customer (
+    customer_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(20)
+);
+
+CREATE TABLE customer_address (
+    customer_id INT REFERENCES customer(customer_id),
+    address_id INT REFERENCES address(address_id),
+    status_id INT REFERENCES address_status(status_id),
+    PRIMARY KEY (customer_id, address_id)
+);
+
+CREATE TABLE shipping_method (
+    method_id SERIAL PRIMARY KEY,
+    method_name VARCHAR(100) NOT NULL UNIQUE,
+    cost DECIMAL(10, 2)
+);
+
+CREATE TABLE order_status (
+    status_id SERIAL PRIMARY KEY,
+    status_name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE cust_order (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customer(customer_id),
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    shipping_method_id INT REFERENCES shipping_method(method_id),
+    total_amount DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE order_line (
+    order_id INT REFERENCES cust_order(order_id),
+    book_id INT REFERENCES book(book_id),
+    quantity INT NOT NULL,
+    line_total DECIMAL(10, 2) NOT NULL,
+    PRIMARY KEY (order_id, book_id)
+);
+
+CREATE TABLE order_history (
+    history_id SERIAL PRIMARY KEY,
+    order_id INT REFERENCES cust_order(order_id),
+    status_id INT REFERENCES order_status(status_id),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    note TEXT
+);
+-- Create roles
+CREATE ROLE db_readonly;
+CREATE ROLE db_readwrite;
+CREATE ROLE db_admin;
+
+ALTER USER 'db_readonly'@'localhost' IDENTIFIED BY 'new_readonly_pass';
+ALTER USER 'db_readwrite'@'localhost' IDENTIFIED BY 'new_readwrite_pass';
+ALTER USER 'db_admin'@'localhost' IDENTIFIED BY 'new_admin_pass';
+
+SELECT user, host, authentication_string
+FROM mysql.user
+WHERE user IN ('db_readonly', 'db_readwrite', 'db_admin');
+
+FLUSH PRIVILEGES;
+
+GRANT SELECT ON bookstore.* TO 'db_readonly'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON bookstore.* TO 'db_readwrite'@'localhost';
+
+GRANT ALL PRIVILEGES ON bookstore.* TO 'db_admin'@'localhost';
+
+FLUSH PRIVILEGES;
+
